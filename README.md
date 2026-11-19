@@ -1,10 +1,10 @@
 # Multimodal Artificial Intelligence Systems — Interactive Prototype
 
-[![Seminar Research](https://img.shields.io/badge/Seminar_Research-2026--27-indigo.svg)](https://github.com/Sakshisen12)
-[![Department](https://img.shields.io/badge/Department-CSE-blue.svg)](https://www.rtu.ac.in/)
-[![Institution](https://img.shields.io/badge/Institution-RTU_Kota-orange.svg)](https://www.rtu.ac.in/)
+[![Research Demo](https://img.shields.io/badge/Research_Demo-Multimodal_AI-indigo.svg)](#)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](#)
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)](#)
 
-An interactive web-based demonstration and prototype built for the **Seminar Lab Research Presentation** on **Multimodal Artificial Intelligence Systems**.
+An interactive web-based demonstration and prototype built to illustrate the core principles and architectures of **Multimodal Artificial Intelligence Systems**.
 
 ---
 
@@ -14,19 +14,6 @@ Traditional single-modal AI systems operate on only one type of input (e.g. text
 
 This prototype models and demonstrates the core multimodal AI lifecycle:
 $$\text{Input Data} \longrightarrow \text{Encode Modalities} \longrightarrow \text{Fuse Features} \longrightarrow \text{Joint Reasoning} \longrightarrow \text{Final Output}$$
-
----
-
-## 🎓 Academic Details
-
-- **Topic:** Multimodal Artificial Intelligence Systems
-- **Author:** Sakshi Sen (Roll No: 23EUCCS090)
-- **Institution:** Rajasthan Technical University (RTU), Kota
-- **Department:** Department of Computer Science & Engineering
-- **Academic Session:** 2026–27
-- **Submitted To:**
-  - **Dr. Harish Sharma**, Professor
-  - **Mr. Yogesh Kumar**, Associate Professor
 
 ---
 
@@ -79,7 +66,7 @@ No local servers, Node packages, or external builds required to run the prototyp
 
 1. Clone or download this repository:
    ```bash
-   git clone https://github.com/Sakshisen12/multimodal-ai-prototype.git
+   git clone https://github.com/<your-username>/multimodal-ai-prototype.git
    cd multimodal-ai-prototype
    ```
 2. Open `index.html` directly in any web browser (Chrome, Edge, Firefox, Brave):
@@ -106,4 +93,4 @@ multimodal-ai-prototype/
 
 ## 📜 License
 
-This project was developed for academic research and seminar demonstration at Rajasthan Technical University, Kota.
+This project is licensed under the MIT License — feel free to use it for educational and research purposes.
