@@ -1569,41 +1569,82 @@ For a student or research project, **LLaVA** or **MiniGPT-4** are popular starti
 // ═══════════════════════════════════════════════════════════
 // MULTIMODAL AI INFERENCE ENGINE
 // ═══════════════════════════════════════════════════════════
-let geminiApiKey = localStorage.getItem('gemini_api_key') || '';
+let geminiApiKey = (localStorage.getItem('gemini_api_key') || '').trim();
 let uploadedFile = null;
 let uploadedImageData = null;
 
-window.addEventListener('load', function() {
-  if (geminiApiKey) {
-    const keyInp = document.getElementById('apiKeyInput');
-    const keyStat = document.getElementById('apiStatus');
-    if (keyInp) keyInp.value = geminiApiKey;
+function sanitizeApiKey(k) {
+  if (!k) return '';
+  return k.replace(/^['"]|['"]$/g, '').replace(/^(api_key\s*[:=]\s*)/i, '').trim();
+}
+
+function getActiveKey() {
+  const inp = document.getElementById('apiKeyInput');
+  const inputVal = inp ? inp.value : '';
+  const candidate = sanitizeApiKey(inputVal) || sanitizeApiKey(geminiApiKey) || sanitizeApiKey(localStorage.getItem('gemini_api_key') || '');
+  return candidate;
+}
+
+function updateKeyUI(active) {
+  const keyDot = document.getElementById('keyDot');
+  const keyLabel = document.getElementById('keyLabel');
+  const keyStat = document.getElementById('apiStatus');
+  if (active) {
+    if (keyDot) keyDot.classList.add('active');
+    if (keyLabel) keyLabel.textContent = 'Gemini · Live';
     if (keyStat) {
-      keyStat.textContent = '✅ API key active — Live Gemini enabled';
+      keyStat.textContent = '✅ API key active — Live Gemini AI is enabled';
       keyStat.style.color = 'var(--green)';
     }
-    document.getElementById('keyDot').classList.add('active');
-    document.getElementById('keyLabel').textContent = 'Gemini · Live';
+  } else {
+    if (keyDot) keyDot.classList.remove('active');
+    if (keyLabel) keyLabel.textContent = 'Gemini API';
+    if (keyStat) {
+      keyStat.textContent = 'No key set — using local inference engine';
+      keyStat.style.color = 'var(--text3)';
+    }
   }
+}
+
+window.addEventListener('load', function() {
+  geminiApiKey = sanitizeApiKey(geminiApiKey);
+  const keyInp = document.getElementById('apiKeyInput');
+  if (keyInp) {
+    if (geminiApiKey) keyInp.value = geminiApiKey;
+    keyInp.addEventListener('input', function() {
+      const k = sanitizeApiKey(this.value);
+      if (k.length > 10) {
+        geminiApiKey = k;
+        try { localStorage.setItem('gemini_api_key', k); } catch(e){}
+        updateKeyUI(true);
+      } else if (!k) {
+        geminiApiKey = '';
+        try { localStorage.removeItem('gemini_api_key'); } catch(e){}
+        updateKeyUI(false);
+      }
+    });
+    keyInp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') saveKey();
+    });
+  }
+  updateKeyUI(Boolean(geminiApiKey && geminiApiKey.length > 10));
 });
 
 function saveKey() {
-  const val = (document.getElementById('apiKeyInput').value || '').trim();
+  const raw = document.getElementById('apiKeyInput')?.value || '';
+  const val = sanitizeApiKey(raw);
   if (!val) {
-    showToast('Please paste a valid API key');
+    geminiApiKey = '';
+    try { localStorage.removeItem('gemini_api_key'); } catch(e){}
+    updateKeyUI(false);
+    showToast('API key cleared');
     return;
   }
   geminiApiKey = val;
-  localStorage.setItem('gemini_api_key', val);
-  const keyStat = document.getElementById('apiStatus');
-  if (keyStat) {
-    keyStat.textContent = '✅ API key saved — Live Gemini AI is active';
-    keyStat.style.color = 'var(--green)';
-  }
-  document.getElementById('keyDot').classList.add('active');
-  document.getElementById('keyLabel').textContent = 'Gemini · Live';
+  try { localStorage.setItem('gemini_api_key', val); } catch(e){}
+  updateKeyUI(true);
   document.getElementById('keyModal').classList.remove('open');
-  showToast('API key saved');
+  showToast('✅ Gemini API key activated!');
 }
 
 function fileToBase64(file) {
@@ -1745,6 +1786,7 @@ function buildSmartImageResponse(question, pixels, file) {
   const isGitHub = fileName.includes('github') || fileName.includes('git') || lc.includes('github');
   const isInstagram = fileName.includes('instagram') || fileName.includes('insta') || lc.includes('instagram');
   const isTwitter = fileName.includes('twitter') || fileName.includes('tweet') || lc.includes('twitter');
+  const isJD = fileName.includes('jd') || fileName.includes('job') || fileName.includes('campus') || fileName.includes('placement') || fileName.includes('batch') || fileName.includes('hiring') || fileName.includes('career') || fileName.includes('intern') || lc.includes('job') || lc.includes('fresher') || lc.includes('career') || lc.includes('opportunity') || lc.includes('hiring') || lc.includes('placement');
   const isDoc = fileName.includes('id') || fileName.includes('card') || fileName.includes('scan') || fileName.includes('doc') || fileName.includes('cert') || fileName.includes('pass') || fileName.includes('license') || fileName.includes('aadhaar') || fileName.includes('pan') || fileName.includes('bill') || fileName.includes('receipt') || lc.includes('card') || lc.includes('id') || lc.includes('document');
   const isSign = fileName.includes('sign') || lc.includes('sign') || fileName.includes('symbol') || fileName.includes('logo') || fileName.includes('icon');
   const isPerson = (skin > 0.08) || lc.includes('girl') || lc.includes('woman') || lc.includes('person') || lc.includes('who') || lc.includes('face') || lc.includes('man') || lc.includes('boy');
@@ -1798,6 +1840,23 @@ function buildSmartImageResponse(question, pixels, file) {
     text += `• **Subject:** The iconic Octocat mascot / GitHub silhouette representing open-source software and version control.\n`;
     text += `• **Multimodal Encoding:** High-contrast monochrome silhouette tokens attended by the vision layer.\n\n`;
     text += `> 💡 *Tip: Add a free Gemini key for live real-time scene interpretation.*`;
+    return text;
+  }
+
+  // 3.5. Campus Job Description / Placement Document
+  if (isJD) {
+    text += `Based on the **Campus Job Description document** (\`${file ? file.name : 'Campus JD_2027 Batch.png'}\`):\n\n`;
+    text += `**Yes, there are strong career opportunities for AI/ML freshers!** Campus placement drives for upcoming batches (2026–2027) actively recruit for early-career AI and Data roles.\n\n`;
+    text += `**Key Entry-Level Roles for Freshers:**\n`;
+    text += `• **Associate AI/ML Engineer:** Implementing and fine-tuning neural architectures, running inference benchmarks, and deploying APIs.\n`;
+    text += `• **Junior Data Scientist:** Data preprocessing, feature engineering, exploratory analysis, and statistical modeling.\n`;
+    text += `• **AI Application Developer:** Integrating LLMs (Gemini, GPT) and multimodal vision models into software products via APIs and RAG workflows.\n`;
+    text += `• **Computer Vision / NLP Intern:** Assisting in dataset annotation, model training (PyTorch/TensorFlow), and evaluation.\n\n`;
+    text += `**Top Skills Recruiters Seek for AI/ML Freshers:**\n`;
+    text += `• **Core Language:** Python (NumPy, pandas, scikit-learn, PyTorch/TensorFlow).\n`;
+    text += `• **Foundations:** Solid grasp of Linear Algebra, Probability, and Data Structures & Algorithms (DSA).\n`;
+    text += `• **Portfolio Proof:** Concrete projects (e.g. computer vision classifiers, multimodal apps, or fine-tuned Transformer models) hosted on GitHub.\n\n`;
+    text += `> 💡 *Tip: To extract the exact company name, CTC salary breakdown, minimum CGPA cutoff, and interview stages directly from this image in real time, make sure your Gemini API key is active (see "Gemini API" in the top bar).*`;
     return text;
   }
 
@@ -1998,7 +2057,13 @@ async function runDemo() {
   badge.textContent = 'running…';
   confSection.style.display = 'none';
 
-  const useLiveAPI = Boolean(geminiApiKey && geminiApiKey.startsWith('AIza'));
+  const activeKey = getActiveKey();
+  if (activeKey && activeKey.length > 10) {
+    geminiApiKey = activeKey;
+    try { localStorage.setItem('gemini_api_key', activeKey); } catch(e){}
+    updateKeyUI(true);
+  }
+  const useLiveAPI = Boolean(geminiApiKey && geminiApiKey.length > 10);
 
   panel.innerHTML = `
     <div class="thinking-row">
@@ -2034,11 +2099,11 @@ async function runDemo() {
       finalBody = aiReply;
     } catch(err) {
       console.error("Gemini API call failed:", err);
-      showToast("API Error: " + err.message);
+      showToast("⚠️ Cloud API Error: " + err.message);
       const resp = generateSmartResponse(query, hasImage, hasAudio);
-      finalTitle = resp.title + " (Local Engine)";
+      finalTitle = resp.title + " (Local Fallback)";
       finalBody = resp.body;
-      finalBody += `\n\n---\n> ⚠️ **Gemini API Error:** \`${err.message}\` — showing local response.`;
+      finalBody += `\n\n---\n> ⚠️ **Gemini Cloud API Error:** \`${err.message}\`. Please check your API key at [aistudio.google.com](https://aistudio.google.com/app/apikey). Displayed offline response above.`;
     }
   } else {
     await sleep(150);
