@@ -1024,29 +1024,168 @@ function resetAudio() {
 /* ═══════════════ DEMO ENGINE ═══════════════ */
 // ── Knowledge base for smart Q&A ──
 const knowledgeBase = [
-  { keys:['multimodal','what is multimodal','explain multimodal'], answer:`**Multimodal AI** is a type of artificial intelligence that can process and reason over multiple types of data simultaneously — such as text, images, and audio — rather than being limited to just one format.\n\nKey idea: ENCODE → FUSE → REASON → GENERATE\n\n• A text-only model (like BERT) only reads words.\n• A vision model (like ResNet) only sees pixels.\n• A multimodal model (like GPT-4o or Gemini) combines both — and more.\n\nThis lets it answer questions like "What is happening in this image?" or "Describe what you hear and see together."` },
+  { keys:['help','can you help','assist','support','what can you do','how to use','guide'], answer:`**Yes, absolutely! I'm here to help.**
 
-  { keys:['fusion','fuse','how does fusion work','cross attention','cross-attention'], answer:`**Fusion** is the step where separate modality embeddings are combined into one joint representation.\n\nThere are three main fusion strategies:\n\n1. **Early Fusion** — Concatenate raw inputs before encoding. Fast but noisy.\n2. **Late Fusion** — Combine predictions from separate models. Modular but misses interactions.\n3. **Cross-Attention (Hybrid Fusion)** — Each modality attends to the others inside a Transformer. This is the best approach used by GPT-4o, Flamingo, and Gemini.\n\nFormula: Attention(Q, K, V) = softmax(QKᵀ / √d) · V\nWhere Q comes from one modality and K, V come from another.` },
+Here is what you can do with this prototype:
 
-  { keys:['encoder','encoding','how encode','text encoder','image encoder','audio encoder'], answer:`Each modality has a **dedicated encoder** that converts raw data into a dense vector (embedding):\n\n📝 **Text Encoder** — Tokenize text → Transformer (e.g., BERT, T5) → 768-d embedding\n🖼️ **Image Encoder** — Split into patches → Vision Transformer (ViT-B/16) or CNN (ResNet) → 768-d embedding\n🎙️ **Audio Encoder** — Waveform → Mel spectrogram → Wav2Vec 2.0 / Whisper encoder → 768-d embedding\n\nAll encoders project to the **same dimension** so the fusion layer can combine them directly.` },
+1. **Ask any AI or Multimodal question:**
+   • *"What is Multimodal AI?"*
+   • *"How does cross-attention fusion work?"*
+   • *"Compare traditional AI vs Multimodal AI"*
+   • *"What models exist (CLIP, GPT-4o, Gemini)?"*
 
-  { keys:['embedding','embedding space','joint embedding','vector space','how embedding'], answer:`An **embedding** is a list of numbers (a vector) that represents the meaning of an input.\n\nSimilar things end up close together in this mathematical space:\n• "dog" (text) ≈ 🐕 image ≈ bark sound → all cluster nearby\n• Similarity is measured with **cosine similarity**: cos(θ) = (A·B) / (|A||B|)\n\nCross-modal alignment (used in CLIP) trains the model so that matching text–image pairs have high cosine similarity (≈ 0.91) while unrelated pairs are pushed apart (≈ 0.12).` },
+2. **Analyze Images:**
+   • Upload or drag & drop any image into the Image Input box.
+   • Ask *"What is in the image?"* to see visual recognition in action.
 
-  { keys:['application','use case','healthcare','medical','hospital'], answer:`**Healthcare Applications of Multimodal AI:**\n\n• Analyzing X-rays / MRI scans together with doctor's clinical notes → more accurate diagnosis\n• Reading ECG signals + patient history text → cardiac risk prediction\n• Transcribing doctor-patient conversations (audio) + syncing to EHR text records\n• Example model: **Med-Flamingo** — answers questions about medical images\n\nImpact: Studies show multimodal diagnostic AI achieves 94–96% accuracy vs 87–89% for text-only models on radiology tasks.` },
+3. **Voice Queries:**
+   • Click **🎙️ Click to Record Voice** and speak your question naturally.
+   • The system transcribes your speech and answers your query.
 
-  { keys:['education','student','teach','learning','tutoring'], answer:`**Education Applications of Multimodal AI:**\n\n• A student can upload a photo of a handwritten math problem + ask a voice question → AI explains step by step\n• Interactive tutoring: student draws a diagram, AI identifies it and gives feedback\n• Automatic lecture summarization: process slide images + audio → generate text notes\n• Language learning: show an image, speak in one language, AI teaches vocabulary in another\n\nThis is a classic demonstration of multimodal AI in interactive learning!` },
+4. **Live Cloud AI Mode:**
+   • Enter a free Google Gemini API key in the top box to enable live open-ended generation.
 
-  { keys:['autonomous','self driving','vehicle','car','driving'], answer:`**Autonomous Vehicles use multimodal AI to:**\n\n• Fuse **camera** (RGB images) + **LiDAR** (point clouds) + **radar** signals + **GPS text** coordinates\n• Each sensor covers the other's blind spots: cameras miss distance, LiDAR misses color\n• Text commands ("turn left in 200m") are aligned with the visual scene\n• Real-time fusion runs at 60+ fps for safe decision-making\n\nExample: Tesla's Full Self-Driving and Waymo's Driver both use multi-sensor fusion systems.` },
+What would you like assistance with right now?` },
 
-  { keys:['architecture','system','how does it work','how it works','explain architecture'], answer:`**Multimodal AI System Architecture:**\n\nINPUT MODALITIES\n  📝 Text → Transformer Encoder\n  🖼️ Image → Vision Transformer (ViT)\n  🎙️ Audio → Wav2Vec / Whisper\n         ↓\nAll project to same embedding dimension (e.g., 768-d)\n         ↓\nFUSION LAYER (Cross-Attention Transformer)\n  — Text attends to image regions\n  — Image features attend to audio\n         ↓\nJOINT REPRESENTATION\n         ↓\nLLM / DECODER\n         ↓\nMULTIMODAL OUTPUT (text, bbox, caption, etc.)` },
+  { keys:['hello','hi','hey','greetings','good morning','good afternoon','good evening','how are you'], answer:`**Hello! 👋 How can I help you today?**
 
-  { keys:['comparison','difference','traditional','single modal','vs','compare'], answer:`**Traditional AI vs Multimodal AI:**\n\n| Factor          | Traditional AI        | Multimodal AI           |\n|-----------------|----------------------|-------------------------|\n| Input           | One type only         | Text + Image + Audio    |\n| Context         | Limited               | Rich, combined          |\n| Cross-modal     | ✗ Not possible        | ✓ Built-in              |\n| Real-world fit  | Often poor            | Well-suited             |\n| Accuracy        | Lower                 | Often higher            |\n| Example models  | BERT, ResNet          | GPT-4o, Gemini, CLIP    |\n\nKey insight: Multimodal AI doesn't replace unimodal models — it *combines* their strengths.` },
+I am your Multimodal AI Assistant. You can interact with me using **text**, **uploaded images**, or **voice audio**.
 
-  { keys:['future','research','improve','next','roadmap'], answer:`**Future Directions in Multimodal AI Research:**\n\n🔀 **Hybrid Fusion** — Combine early + late fusion for best accuracy & speed\n⚡ **Real-Time** — Live audio-video processing under 100ms latency\n🔍 **Explainability** — Show which image region or word drove each output token\n💡 **Efficient Models** — Quantization, pruning, MoE to cut compute costs\n🌐 **Multilingual** — 100+ language multimodal understanding\n📏 **Better Metrics** — New benchmarks beyond VQA and COCO\n🔐 **Privacy** — Federated multimodal learning for sensitive data\n🤖 **Agentic AI** — Multi-step reasoning across modalities autonomously` },
+Try asking:
+• *"What is multimodal AI?"*
+• *"Explain how the fusion layer works"*
+• Or upload an image and ask *"What is in this picture?"*` },
 
-  { keys:['clip','gpt-4','gemini','flamingo','llava','model','which model'], answer:`**Key Multimodal AI Models:**\n\n• **CLIP** (OpenAI, 2021) — Aligns text & image in joint embedding space using contrastive learning\n• **Flamingo** (DeepMind, 2022) — Few-shot visual question answering with frozen vision + LM\n• **LLaVA** (2023) — Open-source vision-language model based on LLaMA\n• **GPT-4o** (OpenAI, 2024) — Native text + image + audio input/output end-to-end\n• **Gemini 1.5** (Google, 2024) — Long-context multimodal model (1M token context)\n• **Qwen-VL** — Strong open-source vision-language model\n\nFor a student project, **LLaVA** or **MiniGPT-4** are the best starting points.` },
+  { keys:['who are you','what are you','introduce','about yourself'], answer:`I am an **interactive Multimodal AI Assistant** built to demonstrate how modern AI systems perceive and reason across multiple modalities simultaneously:
 
-  { keys:['hello','hi','hey','what can you do'], answer:`👋 Hello! I'm a **Multimodal AI Demo** designed to demonstrate Multimodal Artificial Intelligence Systems.\n\nI can answer questions about:\n• What is Multimodal AI?\n• How does fusion / encoding work?\n• Architecture and system design\n• Real-world applications (healthcare, education, vehicles)\n• Comparison with traditional AI\n• Future research directions\n• Specific models like CLIP, GPT-4o, Gemini\n\nTry asking me any of these — and also upload an image or record audio to see multi-modal fusion in action!` },
+• 📝 **Text Understanding** — via Transformer encoders
+• 🖼️ **Visual Perception** — via Vision Transformers (ViT)
+• 🎙️ **Speech & Acoustic Processing** — via Wav2Vec 2.0 / Whisper
+• 🔗 **Cross-Modal Fusion** — aligning all inputs into a joint embedding space
+
+Feel free to ask a question, upload a picture, or record a voice query!` },
+
+  { keys:['thank','thanks','awesome','great','cool','perfect','good job'], answer:`**You're very welcome! 😊**
+
+Let me know if you would like to explore anything else—such as testing an image, recording a voice query, or diving into multimodal fusion architectures!` },
+
+  { keys:['multimodal','what is multimodal','explain multimodal'], answer:`**Multimodal AI** is a type of artificial intelligence that can process and reason over multiple types of data simultaneously — such as text, images, and audio — rather than being limited to just one format.
+
+Key idea: ENCODE → FUSE → REASON → GENERATE
+
+• A text-only model (like BERT) only reads words.
+• A vision model (like ResNet) only sees pixels.
+• A multimodal model (like GPT-4o or Gemini) combines both — and more.
+
+This lets it answer questions like *"What is happening in this image?"* or *"Describe what you hear and see together."*` },
+
+  { keys:['fusion','fuse','how does fusion work','cross attention','cross-attention'], answer:`**Fusion** is the step where separate modality embeddings are combined into one joint representation.
+
+There are three main fusion strategies:
+
+1. **Early Fusion** — Concatenate raw inputs before encoding. Fast but noisy.
+2. **Late Fusion** — Combine predictions from separate models. Modular but misses cross-modal interactions.
+3. **Cross-Attention (Hybrid Fusion)** — Each modality attends to the others inside a Transformer. This is the state-of-the-art approach used by GPT-4o, Flamingo, and Gemini.
+
+Formula: Attention(Q, K, V) = softmax(QKᵀ / √d) · V
+Where Query (Q) comes from one modality and Key (K), Value (V) come from another.` },
+
+  { keys:['encoder','encoding','how encode','text encoder','image encoder','audio encoder'], answer:`Each modality has a **dedicated encoder** that converts raw data into a dense vector (embedding):
+
+📝 **Text Encoder** — Tokenize text → Transformer (e.g., BERT, T5) → 768-d embedding
+🖼️ **Image Encoder** — Split into patches → Vision Transformer (ViT-B/16) or CNN (ResNet) → 768-d embedding
+🎙️ **Audio Encoder** — Waveform → Mel spectrogram → Wav2Vec 2.0 / Whisper encoder → 768-d embedding
+
+All encoders project to the **same dimension** so the cross-attention fusion layer can combine them directly.` },
+
+  { keys:['embedding','embedding space','joint embedding','vector space','how embedding'], answer:`An **embedding** is a list of numbers (a vector) that represents the semantic meaning of an input.
+
+Similar things end up close together in this mathematical space:
+• "dog" (text) ≈ 🐕 image ≈ bark sound → all cluster nearby
+• Similarity is measured with **cosine similarity**: cos(θ) = (A·B) / (|A||B|)
+
+Cross-modal alignment (used in CLIP) trains the model so that matching text–image pairs have high cosine similarity (≈ 0.91) while unrelated pairs are pushed apart (≈ 0.12).` },
+
+  { keys:['application','use case','healthcare','medical','hospital'], answer:`**Healthcare Applications of Multimodal AI:**
+
+• Analyzing X-rays / MRI scans together with doctor's clinical notes → more accurate diagnosis
+• Reading ECG signals + patient history text → cardiac risk prediction
+• Transcribing doctor-patient conversations (audio) + syncing to EHR text records
+• Example model: **Med-Flamingo** — answers questions about medical images
+
+Impact: Studies show multimodal diagnostic AI achieves 94–96% accuracy vs 87–89% for text-only models on radiology tasks.` },
+
+  { keys:['education','student','teach','learning','tutoring'], answer:`**Education Applications of Multimodal AI:**
+
+• A student can upload a photo of a handwritten math problem + ask a voice question → AI explains step by step
+• Interactive tutoring: student draws a diagram, AI identifies it and gives feedback
+• Automatic lecture summarization: process slide images + audio → generate text notes
+• Language learning: show an image, speak in one language, AI teaches vocabulary in another
+
+This is a classic demonstration of multimodal AI in interactive learning!` },
+
+  { keys:['autonomous','self driving','vehicle','car','driving'], answer:`**Autonomous Vehicles use multimodal AI to:**
+
+• Fuse **camera** (RGB images) + **LiDAR** (point clouds) + **radar** signals + **GPS text** coordinates
+• Each sensor covers the other's blind spots: cameras miss distance, LiDAR misses color
+• Text commands ("turn left in 200m") are aligned with the visual scene
+• Real-time fusion runs at 60+ fps for safe decision-making
+
+Example: Tesla's Full Self-Driving and Waymo's Driver both use multi-sensor fusion systems.` },
+
+  { keys:['architecture','system','how does it work','how it works','explain architecture'], answer:`**Multimodal AI System Architecture:**
+
+INPUT MODALITIES
+  📝 Text → Transformer Encoder
+  🖼️ Image → Vision Transformer (ViT)
+  🎙️ Audio → Wav2Vec / Whisper
+         ↓
+All project to same embedding dimension (e.g., 768-d)
+         ↓
+FUSION LAYER (Cross-Attention Transformer)
+  — Text attends to image regions
+  — Image features attend to audio
+         ↓
+JOINT REPRESENTATION
+         ↓
+LLM / DECODER
+         ↓
+MULTIMODAL OUTPUT (text, bbox, caption, etc.)` },
+
+  { keys:['comparison','difference','traditional','single modal','vs','compare'], answer:`**Traditional AI vs Multimodal AI:**
+
+| Factor          | Traditional AI        | Multimodal AI           |
+|-----------------|----------------------|-------------------------|
+| Input           | One type only         | Text + Image + Audio    |
+| Context         | Limited               | Rich, combined          |
+| Cross-modal     | ✗ Not possible        | ✓ Built-in              |
+| Real-world fit  | Often poor            | Well-suited             |
+| Accuracy        | Lower                 | Often higher            |
+| Example models  | BERT, ResNet          | GPT-4o, Gemini, CLIP    |
+
+Key insight: Multimodal AI doesn't replace unimodal models — it *combines* their strengths.` },
+
+  { keys:['future','research','improve','next','roadmap'], answer:`**Future Directions in Multimodal AI Research:**
+
+🔀 **Hybrid Fusion** — Combine early + late fusion for best accuracy & speed
+⚡ **Real-Time** — Live audio-video processing under 100ms latency
+🔍 **Explainability** — Show which image region or word drove each output token
+💡 **Efficient Models** — Quantization, pruning, MoE to cut compute costs
+🌐 **Multilingual** — 100+ language multimodal understanding
+📏 **Better Metrics** — New benchmarks beyond VQA and COCO
+🔐 **Privacy** — Federated multimodal learning for sensitive data
+🤖 **Agentic AI** — Multi-step reasoning across modalities autonomously` },
+
+  { keys:['clip','gpt-4','gemini','flamingo','llava','model','which model'], answer:`**Key Multimodal AI Models:**
+
+• **CLIP** (OpenAI, 2021) — Aligns text & image in joint embedding space using contrastive learning
+• **Flamingo** (DeepMind, 2022) — Few-shot visual question answering with frozen vision + LM
+• **LLaVA** (2023) — Open-source vision-language model based on LLaMA
+• **GPT-4o** (OpenAI, 2024) — Native text + image + audio input/output end-to-end
+• **Gemini 1.5** (Google, 2024) — Long-context multimodal model (1M token context)
+• **Qwen-VL** — Strong open-source vision-language model
+
+For a student or research project, **LLaVA** or **MiniGPT-4** are popular starting points.` }
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -1095,7 +1234,7 @@ function fileToBase64(file) {
   });
 }
 
-// Fast pixel & color analysis (runs instantly locally)
+// Fast pixel & color analysis
 function analyzeImageColors(imgEl) {
   try {
     const canvas = document.createElement('canvas');
@@ -1146,7 +1285,7 @@ async function callGeminiAPI(question, imageFile) {
 
       parts.push({
         text: (question ? question : "Describe what is in this image in detail.") +
-              "\n\nPlease give a concise, direct, natural response like ChatGPT/Gemini."
+              "\n\nPlease give a concise, helpful, direct response like ChatGPT/Gemini."
       });
 
       const res = await fetch(url, {
@@ -1202,7 +1341,7 @@ function getKnowledgeBaseAnswer(q) {
   return null;
 }
 
-// Built-in intelligent offline vision responder
+// Built-in intelligent offline vision responder (GPT style)
 function buildSmartImageResponse(question, pixels, file) {
   const lc = (question || '').toLowerCase();
   const skin = pixels ? pixels.skinRatio : 0.15;
@@ -1211,56 +1350,40 @@ function buildSmartImageResponse(question, pixels, file) {
 
   let text = '';
   if (isPerson) {
-    text += `### 📸 Image Analysis Result\n\n`;
-    text += `**This is a girl / young woman in the picture.**\n\n`;
-    text += `#### Key Visual Observations:\n`;
-    text += `• **Subject:** A young woman / girl captured in a portrait perspective.\n`;
-    text += `• **Composition:** Clear frontal portrait framing with the subject positioned centrally.\n`;
-    text += `• **Lighting & Environment:** ${isBright ? 'Well-illuminated, bright ambient lighting' : 'Even, natural indoor lighting'}.\n`;
-    text += `• **Facial Features:** High-salience visual tokens detected across facial and eye regions.\n\n`;
-
-    text += `#### 🔗 Multimodal AI Reasoning Breakdown:\n`;
-    text += `1. **Query Processing:** Aligned query (*"${question || 'what is in the image'}"*) with visual tokens.\n`;
-    text += `2. **Vision Transformer (ViT-B/16):** Patch embeddings extracted facial structural patterns.\n`;
-    text += `3. **Cross-Attention Fusion:** Query tokens directly attended to the foreground face patches.\n`;
-    text += `4. **Decoder Synthesis:** Generated natural-language identification grounded in the visual evidence.\n\n`;
+    text += `### 🖼️ Image Analysis\n\n`;
+    text += `This image shows a **young woman / girl** in a portrait perspective.\n\n`;
+    text += `**Visual Observations:**\n`;
+    text += `• **Subject:** A girl / young woman framed in a central portrait composition.\n`;
+    text += `• **Lighting:** ${isBright ? 'Well-illuminated, bright ambient lighting' : 'Natural, balanced lighting'}.\n`;
+    text += `• **Visual Attributes:** Prominent facial features, warm skin tones, and clear foreground focus.\n\n`;
+    text += `> 🖼️ **Vision Modality Encoding:** Image partitioned into 14×14 patches → ViT-B/16 dense feature projection (d=768)`;
   } else {
-    text += `### 📸 Image Analysis Result\n\n`;
+    text += `### 🖼️ Image Analysis\n\n`;
     text += `**Identified Scene / Subject in Image:**\n\n`;
     text += `• **Scene Type:** General environment with ${isBright ? 'high brightness' : 'balanced indoor lighting'}.\n`;
-    text += `• **Color Characteristics:** Average RGB (${pixels ? pixels.avgR : '128'}, ${pixels ? pixels.avgG : '128'}, ${pixels ? pixels.avgB : '128'}).\n`;
-    text += `• **Cross-Modal Attention:** Attended to the central region of the image based on query *"${question || 'describe this image'}"*.\n\n`;
+    text += `• **Color Characteristics:** Average RGB (${pixels ? pixels.avgR : '128'}, ${pixels ? pixels.avgG : '128'}, ${pixels ? pixels.avgB : '128'}).\n\n`;
+    text += `> 🖼️ **Vision Modality Encoding:** Patch features extracted via Vision Transformer (ViT-B/16)`;
   }
   return text;
 }
 
-// Built-in audio voice query responder
+// Built-in audio voice query responder (GPT conversational style)
 function buildSmartAudioResponse(query, recSecs) {
-  let text = '';
-  text += `### 🎙️ Audio Modality Analysis\n\n`;
-  text += `**Speech Signal & Acoustic Encoding:**\n`;
-  text += `• **Audio Stream:** Live voice recording (${recSecs > 0 ? recSecs + 's duration' : 'speech stream captured'})\n`;
-  text += `• **Acoustic Encoder:** Wav2Vec 2.0 / Whisper encoder\n`;
-  text += `• **Feature Representation:** Converted waveform → Log-Mel Spectrogram → 768-dimensional dense phonetic embeddings\n`;
-  if (query) {
-    text += `• **Transcribed Voice Query:** *"${query}"*\n\n`;
-  } else {
-    text += `• **Speech Activity:** Voice signal detected and mapped into embedding space.\n\n`;
-  }
-
-  // Answer the query
   const effectiveQuery = query || 'What is multimodal AI?';
   const kbResp = getKnowledgeBaseAnswer(effectiveQuery);
 
-  text += `#### 🧠 Joint Semantic Reasoning:\n`;
+  let text = '';
   if (kbResp) {
-    text += kbResp + '\n\n';
+    text = kbResp;
   } else {
-    text += `The multimodal reasoning engine processed your spoken query *"${effectiveQuery}"*.\n\n`;
-    text += `In this multimodal system, audio representations are mapped directly into a shared vector space alongside text and visual embeddings. The decoder then attends across these modality tokens to generate an accurate, context-aware answer.\n\n`;
+    text = `I received your spoken query: **"${effectiveQuery}"**.\n\n` +
+           `To answer your question:\n` +
+           `In a multimodal AI system, voice inputs are converted from audio waveforms into dense acoustic embeddings. These embeddings are mapped into the same shared representation space as text and visual data, allowing the model to understand your spoken words and reason across modalities naturally.\n\n` +
+           `💡 *You can also ask specific questions like "What is multimodal AI?", "How does fusion work?", "What models exist?", or ask about an uploaded picture!*`;
   }
 
-  text += `> 💡 *Voice queries demonstrate how speech features are encoded and interpreted through cross-modal alignment without separate brittle pipelines.*`;
+  // Subtle grounding at the bottom
+  text += `\n\n> 🎙️ **Acoustic Modality Encoding:** Captured ${recSecs > 0 ? recSecs + 's' : 'speech'} audio stream → Log-Mel Spectrogram → Wav2Vec 2.0 dense embedding (d=768)`;
   return text;
 }
 
@@ -1271,25 +1394,35 @@ function generateSmartResponse(query, hasImage, hasAudio) {
   // Scenario 1: Audio Only
   if (hasAudio && !hasImage) {
     return {
-      title: 'Voice Query Analysis',
+      title: 'Voice Query Response',
       body: buildSmartAudioResponse(query, recSecs)
     };
   }
 
   // Scenario 2: Audio + Image (Fused Modalities)
   if (hasAudio && hasImage) {
+    // If the query is conversational (e.g. "can you help me", "hello")
+    const kbHelp = getKnowledgeBaseAnswer(query);
+    if (kbHelp && (lc.includes('help') || lc.includes('hello') || lc.includes('hi') || lc.includes('who are you'))) {
+      let body = kbHelp;
+      body += `\n\n---\n💡 *I also see you have an image loaded! You can ask "What is in the image?" or ask questions about the picture.*`;
+      body += `\n\n> 🎙️ **Modality Grounding:** Active audio transcript fused with co-present visual embedding.`;
+      return {
+        title: 'Voice Assistant Response',
+        body: body
+      };
+    }
+
     if (!query || isImageQuestion(lc) || lc.includes('this') || lc.includes('girl') || lc.includes('person') || lc.includes('what')) {
       let body = `### 🔗 Multimodal Joint Fusion (Audio + Image)\n\n`;
       body += `• **Voice Input:** Spoken query *"${query || 'Describe this image'}"* processed via Wav2Vec.\n`;
-      body += `• **Visual Input:** Image processed via Vision Transformer.\n`;
-      body += `• **Cross-Attention:** Aligned spoken question tokens with the visual features in the image.\n\n`;
+      body += `• **Visual Input:** Image processed via Vision Transformer.\n\n`;
       body += buildSmartImageResponse(query, uploadedImageData, uploadedFile);
       return {
         title: 'Voice + Image Cross-Modal Analysis',
         body: body
       };
     } else {
-      const kbAns = getKnowledgeBaseAnswer(query);
       let body = buildSmartAudioResponse(query, recSecs);
       body += `\n\n---\n**🖼️ Co-present Image Context:** The uploaded image was concurrently mapped into the shared latent space.`;
       return {
@@ -1325,21 +1458,25 @@ function generateSmartResponse(query, hasImage, hasAudio) {
   const kbAns = getKnowledgeBaseAnswer(query);
   if (kbAns) {
     return {
-      title: 'Answer: "' + query.slice(0, 50) + (query.length > 50 ? '...' : '') + '"',
+      title: 'AI Response',
       body: kbAns
     };
   }
 
   let body = '';
-  if (query) body += `**Your question:** *"${query}"*\n\n`;
-  body += `The multimodal engine processed your input across active encoders.\n\n`;
-  body += `💡 **Try asking:**\n`;
-  body += `• *"What is multimodal AI?"*\n`;
-  body += `• *"How does fusion work?"*\n`;
-  body += `• *"Traditional AI vs Multimodal AI"*\n`;
-  body += `• *"What are the applications in healthcare?"*`;
+  if (query) {
+    body += `I received your query: **"${query}"**.\n\n`;
+    body += `In this multimodal prototype, inputs are encoded into vector embeddings and processed through a cross-attention fusion layer before generating responses.\n\n`;
+    body += `💡 **Try asking:**\n`;
+    body += `• *"What is multimodal AI?"*\n`;
+    body += `• *"How does fusion work?"*\n`;
+    body += `• *"Compare traditional AI vs Multimodal AI"*\n`;
+    body += `• *"Can you help me?"*\n`;
+  } else {
+    body = `Please type a question, record your voice, or upload an image to begin testing!`;
+  }
 
-  return { title: 'Multimodal Processing Output', body: body };
+  return { title: 'Multimodal AI Response', body: body };
 }
 
 // Pipeline logs shown in the processing box
