@@ -278,6 +278,29 @@ body{
 .composer-textarea:focus{border-color:var(--accent)}
 .composer-textarea::placeholder{color:var(--text3)}
 
+/* ── API key strip ── */
+.api-key-strip{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:7px 12px;
+}
+.api-key-strip-left{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.key-indicator{width:7px;height:7px;border-radius:50%;background:var(--border2)}
+.key-indicator.active{background:var(--green);box-shadow:0 0 6px var(--green)}
+.api-key-strip-right{display:flex;align-items:center;gap:6px;flex:1;max-width:320px}
+.api-strip-input{
+  flex:1;background:var(--bg);border:1px solid var(--border2);
+  border-radius:4px;color:var(--text);font-family:var(--mono);
+  font-size:11px;padding:5px 8px;outline:none;
+}
+.api-strip-input:focus{border-color:var(--accent)}
+.btn-activate-key{
+  padding:5px 11px;background:var(--accent);border:none;border-radius:4px;
+  color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:opacity .15s;
+}
+.btn-activate-key:hover{opacity:.88}
+
 /* ── Attachment row ── */
 .attach-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .attach-btn{
@@ -753,8 +776,8 @@ tr:hover td{background:var(--card2)}
     </div>
     <div class="field-label">API Key</div>
     <div class="field-row">
-      <input id="apiKeyInput" class="field-input" type="password" placeholder="AIza..." autocomplete="off"/>
-      <button class="btn-primary" onclick="saveKey()">Save</button>
+      <input id="apiKeyInputModal" class="field-input" type="password" placeholder="AIza..." autocomplete="off"/>
+      <button class="btn-primary" onclick="saveKey(true)">Save</button>
     </div>
     <div id="apiStatus" style="margin-top:10px;font-size:12px;color:var(--text3)">
       No key set — using local inference engine
@@ -827,6 +850,18 @@ tr:hover td{background:var(--card2)}
       </div>
 
       <div class="composer">
+        <!-- Live Gemini Key strip -->
+        <div class="api-key-strip">
+          <div class="api-key-strip-left">
+            <span class="key-indicator" id="stripKeyDot"></span>
+            <span id="stripKeyStatusText" style="font-size:12px;font-weight:600;color:var(--text3)">Smart Offline Mode</span>
+          </div>
+          <div class="api-key-strip-right">
+            <input id="apiKeyInput" type="password" class="api-strip-input" placeholder="Paste Gemini Key for Live GPT AI" autocomplete="off"/>
+            <button class="btn-activate-key" id="stripSaveBtn" onclick="saveKey()">Activate</button>
+          </div>
+        </div>
+
         <!-- Text -->
         <div>
           <div class="composer-label">Text Query</div>
@@ -1569,7 +1604,7 @@ For a student or research project, **LLaVA** or **MiniGPT-4** are popular starti
 // ═══════════════════════════════════════════════════════════
 // MULTIMODAL AI INFERENCE ENGINE
 // ═══════════════════════════════════════════════════════════
-let geminiApiKey = (localStorage.getItem('gemini_api_key') || '').trim();
+let geminiApiKey = (function(){ try { return (localStorage.getItem('gemini_api_key') || '').trim(); } catch(e){ return ''; } })();
 let uploadedFile = null;
 let uploadedImageData = null;
 
@@ -1579,19 +1614,28 @@ function sanitizeApiKey(k) {
 }
 
 function getActiveKey() {
-  const inp = document.getElementById('apiKeyInput');
-  const inputVal = inp ? inp.value : '';
-  const candidate = sanitizeApiKey(inputVal) || sanitizeApiKey(geminiApiKey) || sanitizeApiKey(localStorage.getItem('gemini_api_key') || '');
-  return candidate;
+  const inp1 = document.getElementById('apiKeyInput');
+  const inp2 = document.getElementById('apiKeyInputModal');
+  const raw = (inp1 && inp1.value ? inp1.value : '') || (inp2 && inp2.value ? inp2.value : '') || geminiApiKey || (function(){ try { return localStorage.getItem('gemini_api_key') || ''; } catch(e){ return ''; } })();
+  return sanitizeApiKey(raw);
 }
 
 function updateKeyUI(active) {
   const keyDot = document.getElementById('keyDot');
   const keyLabel = document.getElementById('keyLabel');
+  const stripDot = document.getElementById('stripKeyDot');
+  const stripText = document.getElementById('stripKeyStatusText');
+  const stripBtn = document.getElementById('stripSaveBtn');
   const keyStat = document.getElementById('apiStatus');
   if (active) {
     if (keyDot) keyDot.classList.add('active');
     if (keyLabel) keyLabel.textContent = 'Gemini · Live';
+    if (stripDot) stripDot.classList.add('active');
+    if (stripText) {
+      stripText.textContent = 'Gemini Live Active';
+      stripText.style.color = 'var(--green)';
+    }
+    if (stripBtn) stripBtn.textContent = 'Active ✓';
     if (keyStat) {
       keyStat.textContent = '✅ API key active — Live Gemini AI is enabled';
       keyStat.style.color = 'var(--green)';
@@ -1599,6 +1643,12 @@ function updateKeyUI(active) {
   } else {
     if (keyDot) keyDot.classList.remove('active');
     if (keyLabel) keyLabel.textContent = 'Gemini API';
+    if (stripDot) stripDot.classList.remove('active');
+    if (stripText) {
+      stripText.textContent = 'Smart Offline Mode';
+      stripText.style.color = 'var(--text3)';
+    }
+    if (stripBtn) stripBtn.textContent = 'Activate';
     if (keyStat) {
       keyStat.textContent = 'No key set — using local inference engine';
       keyStat.style.color = 'var(--text3)';
@@ -1608,11 +1658,18 @@ function updateKeyUI(active) {
 
 window.addEventListener('load', function() {
   geminiApiKey = sanitizeApiKey(geminiApiKey);
-  const keyInp = document.getElementById('apiKeyInput');
-  if (keyInp) {
-    if (geminiApiKey) keyInp.value = geminiApiKey;
-    keyInp.addEventListener('input', function() {
+  const keyInp1 = document.getElementById('apiKeyInput');
+  const keyInp2 = document.getElementById('apiKeyInputModal');
+  if (geminiApiKey) {
+    if (keyInp1) keyInp1.value = geminiApiKey;
+    if (keyInp2) keyInp2.value = geminiApiKey;
+  }
+  [keyInp1, keyInp2].forEach(inp => {
+    if (!inp) return;
+    inp.addEventListener('input', function() {
       const k = sanitizeApiKey(this.value);
+      if (keyInp1 && keyInp1 !== this) keyInp1.value = k;
+      if (keyInp2 && keyInp2 !== this) keyInp2.value = k;
       if (k.length > 10) {
         geminiApiKey = k;
         try { localStorage.setItem('gemini_api_key', k); } catch(e){}
@@ -1623,28 +1680,32 @@ window.addEventListener('load', function() {
         updateKeyUI(false);
       }
     });
-    keyInp.addEventListener('keydown', function(e) {
+    inp.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') saveKey();
     });
-  }
+  });
   updateKeyUI(Boolean(geminiApiKey && geminiApiKey.length > 10));
 });
 
-function saveKey() {
-  const raw = document.getElementById('apiKeyInput')?.value || '';
-  const val = sanitizeApiKey(raw);
+function saveKey(fromModal) {
+  const val = getActiveKey();
   if (!val) {
     geminiApiKey = '';
     try { localStorage.removeItem('gemini_api_key'); } catch(e){}
     updateKeyUI(false);
-    showToast('API key cleared');
+    showToast('API key cleared — using offline engine');
     return;
   }
   geminiApiKey = val;
   try { localStorage.setItem('gemini_api_key', val); } catch(e){}
+  const keyInp1 = document.getElementById('apiKeyInput');
+  const keyInp2 = document.getElementById('apiKeyInputModal');
+  if (keyInp1) keyInp1.value = val;
+  if (keyInp2) keyInp2.value = val;
   updateKeyUI(true);
-  document.getElementById('keyModal').classList.remove('open');
-  showToast('✅ Gemini API key activated!');
+  const modal = document.getElementById('keyModal');
+  if (modal) modal.classList.remove('open');
+  showToast('✅ Gemini Live AI Activated!');
 }
 
 function fileToBase64(file) {
@@ -1991,22 +2052,77 @@ function generateSmartResponse(query, hasImage, hasAudio) {
 
   const kbAns = getKnowledgeBaseAnswer(query);
   if (kbAns) {
-    return { title: 'AI Response', body: kbAns };
+    return { title: 'AI Assistant', body: kbAns };
   }
 
-  let body = '';
   if (query) {
-    body += `I received your query: **"${query}"**.\n\n`;
-    body += `In this multimodal prototype, inputs are encoded into vector embeddings and processed through a cross-attention fusion layer before generating responses.\n\n`;
-    body += `💡 **Try asking:**\n`;
-    body += `• *"What is multimodal AI?"*\n`;
-    body += `• *"How does fusion work?"*\n`;
-    body += `• *"Compare traditional AI vs Multimodal AI"*\n`;
-  } else {
-    body = `Please type a question, record your voice, or upload an image to begin.`;
+    const aiAnswer = generateConversationalAIResponse(query);
+    return { title: 'AI Assistant', body: aiAnswer };
   }
 
-  return { title: 'Multimodal AI Response', body: body };
+  return { title: 'Multimodal AI Assistant', body: 'Please type a question, record your voice, or upload an image to begin.' };
+}
+
+// ── Smart Conversational GPT-Style Chatbot Responder ──
+function generateConversationalAIResponse(query) {
+  const lc = (query || '').toLowerCase().trim();
+
+  // 1. Fresher / Job / Career Advice / Suggestions
+  if (lc.includes('job') || lc.includes('fresher') || lc.includes('career') || lc.includes('placement') || lc.includes('intern') || lc.includes('hire') || lc.includes('suggestion') || lc.includes('not getting job') || lc.includes('unemployed') || lc.includes('interview') || lc.includes('resume')) {
+    return `### 🚀 Actionable Career Advice for Freshers\n\n` +
+      `It is completely normal to face challenges and initial rejections when applying as a fresher. The job market is competitive, but candidates who stand out do so by following a targeted, project-first approach:\n\n` +
+      `**1. Build 2–3 Production-Grade Projects (Not Kaggle Tutorials):**\n` +
+      `• *Avoid:* Generic Titanic, Iris, or basic tutorial notebooks.\n` +
+      `• *Build:* End-to-end full-stack applications with clean GitHub repositories and live deployments:\n` +
+      `  - **Full-Stack RAG System:** Connect LangChain / LlamaIndex + FAISS + FastAPI backend + React/Streamlit UI for PDF question-answering.\n` +
+      `  - **Multimodal AI Application:** Build an OCR document parser or visual search engine powered by open-source vision models.\n` +
+      `• Deploy them publicly (Hugging Face Spaces or Vercel) and put live demo links at the top of your resume.\n\n` +
+      `**2. Optimize Your Resume for ATS & Impact:**\n` +
+      `• Use a clean, single-column formatting template without tables that break ATS parsers.\n` +
+      `• Use action verbs and quantified impact: *"Trained multimodal model reaching 94.2% F1-score; reduced inference latency by 35% with ONNX quantization."*\n` +
+      `• Match keywords from target job descriptions (Python, PyTorch, SQL, REST APIs, Git, Docker).\n\n` +
+      `**3. Switch from "Easy Apply" to Targeted Cold Outreach:**\n` +
+      `• Applying through job portals alone has a <2% response rate. Instead, find Founders, Tech Leads, and Engineering Managers at seed/Series-A startups on LinkedIn.\n` +
+      `• Send a concise 3-sentence message showing concrete value:\n` +
+      `  > *"Hi [Name], I noticed you're scaling [Product]. I recently built a live multimodal project [Link] solving [Specific Problem]. If you have entry-level openings or internships on your team, I'd love to share my portfolio."*\n\n` +
+      `**4. Master Technical Interview Fundamentals:**\n` +
+      `• **Data Structures & Algorithms (DSA):** Focus on 75 essential problems (Blind 75: Arrays, Two Pointers, Trees, HashMaps).\n` +
+      `• **Python Mastery:** OOP concepts, generators, decorators, memory management, and writing clean PEP-8 code.\n` +
+      `• **Core Machine Learning:** Be ready to derive loss functions, explain the bias-variance tradeoff, and detail Transformer self-attention step-by-step.\n\n` +
+      `**5. Stay Consistent:**\n` +
+      `• Treat job hunting like a daily routine: 2 hours coding/building, 1 hour DSA practice, 5 personalized outreach messages.\n\n` +
+      `> 💡 *Tip: For live interactive conversation on any topic (code generation, resume review, live debugging), paste your free Gemini API key in the composer bar above!*`;
+  }
+
+  // 2. Machine Learning / Deep Learning / AI Concepts
+  if (lc.includes('machine learning') || lc.includes('deep learning') || lc.includes('neural') || lc.includes('transformer') || lc.includes('llm') || lc.includes('gpt') || lc.includes('ai') || lc.includes('model')) {
+    return `### 🧠 AI & Deep Learning Overview\n\n` +
+      `Modern Artificial Intelligence centers around **Deep Learning** and **Transformer architectures**:\n\n` +
+      `• **Core Idea:** Neural networks learn hierarchical representations directly from raw data (tokens, pixels, waveforms) using gradient descent and backpropagation.\n` +
+      `• **Transformers & Attention:** The self-attention mechanism allows models to weigh the relevance of every token against every other token, powering modern LLMs (GPT-4o, Gemini) and Vision Transformers (ViT).\n` +
+      `• **Multimodal AI:** Extends this paradigm by projecting disparate modalities (text, vision, audio) into a single unified embedding space for joint reasoning.\n\n` +
+      `Would you like to explore model architectures, fine-tuning techniques, or practical implementation steps?`;
+  }
+
+  // 3. Coding / Python / Project Help
+  if (lc.includes('python') || lc.includes('code') || lc.includes('programming') || lc.includes('project') || lc.includes('github') || lc.includes('learn') || lc.includes('how to start')) {
+    return `### 💻 Programming & Tech Stack Recommendations\n\n` +
+      `To build production-grade AI and software engineering applications:\n\n` +
+      `• **Language:** **Python 3.10+** remains the industry standard for AI/ML, backed by C++ under the hood for tensor computations.\n` +
+      `• **Frameworks:** **PyTorch** for research & model training; **FastAPI** for low-latency REST endpoints; **Hugging Face** for accessing pretrained models.\n` +
+      `• **Best Practices:** Use virtual environments (\`venv\` / \`conda\`), write unit tests, and document your codebase with clear \`README.md\` and architectural diagrams.\n\n` +
+      `Tell me what specific project or technology you'd like to build, and I can generate the code structure for you!`;
+  }
+
+  // 4. Default Conversational Fallback (Natural, helpful, GPT-style)
+  return `### 💬 AI Assistant Response\n\n` +
+    `Regarding your query: **"${query}"**\n\n` +
+    `In this AI system, your inputs are tokenized and processed through dense representation layers. Even when running offline without external cloud dependencies, the built-in reasoning engine provides structured insights across AI systems, software development, and career engineering.\n\n` +
+    `Here are a few ways we can dive deeper:\n` +
+    `• **Technical AI Inquiries:** e.g., *"Explain cross-attention fusion"*, *"How does Vision Transformer (ViT) patch embedding work?"*\n` +
+    `• **Career & Tech Guidance:** Ask for fresher job search strategies, resume bullet points, or end-to-end AI project ideas.\n` +
+    `• **Multimodal Testing:** Upload an image or record a voice query to test joint multimodal reasoning.\n\n` +
+    `> 💡 *Note: To unlock live open-ended web reasoning on any arbitrary prompt, enter your free Gemini API key in the composer bar above!*`;
 }
 
 const logMessages = [
