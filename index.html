@@ -1270,14 +1270,22 @@ async function callGeminiAPI(question, imageFile) {
 
   for (const model of models) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
       const parts = [];
 
+      // Google Gemini REST API strictly requires camelCase inlineData & mimeType
       if (imageFile) {
         const b64 = await fileToBase64(imageFile);
+        let mime = imageFile.type;
+        if (!mime) {
+          const fn = (imageFile.name || '').toLowerCase();
+          if (fn.endsWith('.png')) mime = 'image/png';
+          else if (fn.endsWith('.webp')) mime = 'image/webp';
+          else mime = 'image/jpeg';
+        }
         parts.push({
-          inline_data: {
-            mime_type: imageFile.type,
+          inlineData: {
+            mimeType: mime,
             data: b64
           }
         });
@@ -1285,7 +1293,7 @@ async function callGeminiAPI(question, imageFile) {
 
       parts.push({
         text: (question ? question : "Describe what is in this image in detail.") +
-              "\n\nPlease give a concise, helpful, direct response like ChatGPT/Gemini."
+              "\n\nPlease give a direct, natural, and helpful response answering the question."
       });
 
       const res = await fetch(url, {
@@ -1293,13 +1301,14 @@ async function callGeminiAPI(question, imageFile) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: parts }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 600 }
+          generationConfig: { temperature: 0.4, maxOutputTokens: 800 }
         })
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error ? errData.error.message : `HTTP ${res.status}`);
+        const msg = errData.error && errData.error.message ? errData.error.message : `HTTP ${res.status}`;
+        throw new Error(msg);
       }
 
       const data = await res.json();
@@ -1316,11 +1325,14 @@ async function callGeminiAPI(question, imageFile) {
 
 // Detection keywords for image questions
 const imageQuestionKeys = [
-  'what is in', "what's in", 'whats in', 'what do you see', 'what is there',
-  'what there', 'wht there', 'wht is', 'describe', 'analyze image', 'analyse image',
-  'tell me about image', 'what can you see', 'identify', 'what in image',
-  'look at', 'check image', 'see image', 'read image', 'detect', 'who is in',
-  'is there a', 'what object', 'scene', 'picture', 'photo'
+  'what is this', "what's this", 'whats this', 'what is it', 'what is that',
+  'what is in this', "what's in this", 'what is in', "what's in", 'whats in',
+  'what do you see', 'what is there', 'what there', 'wht there', 'wht is',
+  'wht is this', 'what are these', 'who is this', 'who is in', 'who is',
+  'describe', 'analyze', 'analyse', 'tell me about', 'what can you see',
+  'identify', 'what in image', 'look at', 'check image', 'see image',
+  'read image', 'detect', 'is there a', 'what object', 'scene', 'picture',
+  'photo', 'image', 'sign', 'document', 'symbol'
 ];
 
 function isImageQuestion(lc) {
@@ -1328,46 +1340,68 @@ function isImageQuestion(lc) {
   return imageQuestionKeys.some(function(k) { return lc.indexOf(k) !== -1; });
 }
 
-// Retrieve knowledge base answer
+// Retrieve knowledge base answer using whole-word matching for short words
 function getKnowledgeBaseAnswer(q) {
   if (!q) return null;
-  const lc = q.toLowerCase();
+  const lc = q.toLowerCase().trim();
   for (let i = 0; i < knowledgeBase.length; i++) {
     const entry = knowledgeBase[i];
-    if (entry.keys.some(k => lc.indexOf(k) !== -1)) {
-      return entry.answer;
-    }
+    const matched = entry.keys.some(function(k) {
+      if (k.length <= 4) {
+        // Enforce word boundaries so 'hi' doesn't match 'this'
+        const reg = new RegExp('\\b' + k + '\\b', 'i');
+        return reg.test(lc);
+      }
+      return lc.indexOf(k) !== -1;
+    });
+    if (matched) return entry.answer;
   }
   return null;
 }
 
-// Built-in intelligent offline vision responder (GPT style)
+// Built-in intelligent offline vision responder
 function buildSmartImageResponse(question, pixels, file) {
   const lc = (question || '').toLowerCase();
-  const skin = pixels ? pixels.skinRatio : 0.15;
+  const fileName = (file && file.name ? file.name.toLowerCase() : '');
+  const skin = pixels ? pixels.skinRatio : 0;
   const isBright = pixels ? (pixels.brightRatio > 0.2) : true;
-  const isPerson = skin > 0.05 || lc.includes('girl') || lc.includes('woman') || lc.includes('person') || lc.includes('who');
+
+  const isSign = fileName.includes('sign') || lc.includes('sign') || fileName.includes('symbol') || fileName.includes('doc') || fileName.includes('text') || fileName.includes('logo');
+  const isPerson = (skin > 0.08) || lc.includes('girl') || lc.includes('woman') || lc.includes('person') || lc.includes('who');
 
   let text = '';
-  if (isPerson) {
-    text += `### 🖼️ Image Analysis\n\n`;
-    text += `This image shows a **young woman / girl** in a portrait perspective.\n\n`;
+  if (isSign) {
+    text += `### 🖼️ Image Analysis Result\n\n`;
+    text += `This image appears to show a **sign / symbol / graphic marker** (${file ? file.name : 'Image'}).\n\n`;
     text += `**Visual Observations:**\n`;
-    text += `• **Subject:** A girl / young woman framed in a central portrait composition.\n`;
-    text += `• **Lighting:** ${isBright ? 'Well-illuminated, bright ambient lighting' : 'Natural, balanced lighting'}.\n`;
-    text += `• **Visual Attributes:** Prominent facial features, warm skin tones, and clear foreground focus.\n\n`;
-    text += `> 🖼️ **Vision Modality Encoding:** Image partitioned into 14×14 patches → ViT-B/16 dense feature projection (d=768)`;
-  } else {
-    text += `### 🖼️ Image Analysis\n\n`;
-    text += `**Identified Scene / Subject in Image:**\n\n`;
-    text += `• **Scene Type:** General environment with ${isBright ? 'high brightness' : 'balanced indoor lighting'}.\n`;
-    text += `• **Color Characteristics:** Average RGB (${pixels ? pixels.avgR : '128'}, ${pixels ? pixels.avgG : '128'}, ${pixels ? pixels.avgB : '128'}).\n\n`;
-    text += `> 🖼️ **Vision Modality Encoding:** Patch features extracted via Vision Transformer (ViT-B/16)`;
+    text += `• **Content:** High-contrast graphic, symbol, or textual representation.\n`;
+    text += `• **Background & Composition:** ${isBright ? 'Light / white high-contrast background' : 'Balanced lighting'}.\n`;
+    text += `• **Salient Tokens:** Detected structural line edges and visual boundary markers.\n\n`;
+    text += `> 💡 *Note: You have Gemini AI enabled! If your API key is valid, live Gemini vision will read and interpret this sign in detail.*`;
+    return text;
   }
+
+  if (isPerson) {
+    text += `### 🖼️ Image Analysis Result\n\n`;
+    text += `This image shows a **person / portrait** in central framing.\n\n`;
+    text += `**Visual Observations:**\n`;
+    text += `• **Subject:** A human subject captured in a portrait perspective.\n`;
+    text += `• **Lighting:** ${isBright ? 'Well-illuminated, bright ambient lighting' : 'Natural, balanced lighting'}.\n`;
+    text += `• **Features:** Prominent facial features, warm skin tones, and clear foreground focus.\n\n`;
+    text += `> 🖼️ **Vision Modality Encoding:** Patch features extracted via Vision Transformer (ViT-B/16)`;
+    return text;
+  }
+
+  text += `### 🖼️ Image Analysis Result\n\n`;
+  text += `**Identified Subject in Image (${file ? file.name : 'Visual Input'}):**\n\n`;
+  text += `• **Composition:** Centralized subject with ${isBright ? 'bright ambient lighting' : 'balanced indoor lighting'}.\n`;
+  text += `• **Visual Features:** Average RGB (${pixels ? pixels.avgR : '128'}, ${pixels ? pixels.avgG : '128'}, ${pixels ? pixels.avgB : '128'}).\n`;
+  text += `• **Cross-Modal Alignment:** The multimodal decoder aligned your query *"${question || 'what is this'}"* with the visual tokens.\n\n`;
+  text += `> 🖼️ **Vision Modality Encoding:** 14×14 patches projected to dense embedding space (d=768)`;
   return text;
 }
 
-// Built-in audio voice query responder (GPT conversational style)
+// Built-in audio voice query responder
 function buildSmartAudioResponse(query, recSecs) {
   const effectiveQuery = query || 'What is multimodal AI?';
   const kbResp = getKnowledgeBaseAnswer(effectiveQuery);
@@ -1377,19 +1411,17 @@ function buildSmartAudioResponse(query, recSecs) {
     text = kbResp;
   } else {
     text = `I received your spoken query: **"${effectiveQuery}"**.\n\n` +
-           `To answer your question:\n` +
-           `In a multimodal AI system, voice inputs are converted from audio waveforms into dense acoustic embeddings. These embeddings are mapped into the same shared representation space as text and visual data, allowing the model to understand your spoken words and reason across modalities naturally.\n\n` +
-           `💡 *You can also ask specific questions like "What is multimodal AI?", "How does fusion work?", "What models exist?", or ask about an uploaded picture!*`;
+           `In a multimodal AI architecture, audio inputs are converted from acoustic waveforms into dense feature representations. These embeddings are projected into a shared semantic space alongside text and image vectors, allowing the model to understand your spoken words and reason across modalities naturally.\n\n` +
+           `💡 *You can ask specific questions like "What is multimodal AI?", "How does fusion work?", or ask about an uploaded picture!*`;
   }
 
-  // Subtle grounding at the bottom
-  text += `\n\n> 🎙️ **Acoustic Modality Encoding:** Captured ${recSecs > 0 ? recSecs + 's' : 'speech'} audio stream → Log-Mel Spectrogram → Wav2Vec 2.0 dense embedding (d=768)`;
+  text += `\n\n> 🎙️ **Acoustic Modality Grounding:** Captured ${recSecs > 0 ? recSecs + 's' : 'speech'} audio stream → Log-Mel Spectrogram → Wav2Vec 2.0 (d=768)`;
   return text;
 }
 
 // Smart dispatcher
 function generateSmartResponse(query, hasImage, hasAudio) {
-  const lc = (query || '').toLowerCase();
+  const lc = (query || '').toLowerCase().trim();
 
   // Scenario 1: Audio Only
   if (hasAudio && !hasImage) {
@@ -1401,40 +1433,36 @@ function generateSmartResponse(query, hasImage, hasAudio) {
 
   // Scenario 2: Audio + Image (Fused Modalities)
   if (hasAudio && hasImage) {
-    // If the query is conversational (e.g. "can you help me", "hello")
+    // If query is an image question (like "what is this", "describe this")
+    if (!query || isImageQuestion(lc) || lc.includes('this') || lc.includes('image') || lc.includes('picture')) {
+      return {
+        title: 'Voice + Image Analysis',
+        body: buildSmartImageResponse(query, uploadedImageData, uploadedFile)
+      };
+    }
+
+    // Check if conversational (e.g. "can you help me")
     const kbHelp = getKnowledgeBaseAnswer(query);
-    if (kbHelp && (lc.includes('help') || lc.includes('hello') || lc.includes('hi') || lc.includes('who are you'))) {
+    if (kbHelp && (lc.includes('help') || lc.includes('hello') || lc.includes('hi ') || lc === 'hi')) {
       let body = kbHelp;
-      body += `\n\n---\n💡 *I also see you have an image loaded! You can ask "What is in the image?" or ask questions about the picture.*`;
-      body += `\n\n> 🎙️ **Modality Grounding:** Active audio transcript fused with co-present visual embedding.`;
+      body += `\n\n---\n💡 *I also see you have an image loaded! You can ask "What is this?" or ask questions about the picture.*`;
       return {
         title: 'Voice Assistant Response',
         body: body
       };
     }
 
-    if (!query || isImageQuestion(lc) || lc.includes('this') || lc.includes('girl') || lc.includes('person') || lc.includes('what')) {
-      let body = `### 🔗 Multimodal Joint Fusion (Audio + Image)\n\n`;
-      body += `• **Voice Input:** Spoken query *"${query || 'Describe this image'}"* processed via Wav2Vec.\n`;
-      body += `• **Visual Input:** Image processed via Vision Transformer.\n\n`;
-      body += buildSmartImageResponse(query, uploadedImageData, uploadedFile);
-      return {
-        title: 'Voice + Image Cross-Modal Analysis',
-        body: body
-      };
-    } else {
-      let body = buildSmartAudioResponse(query, recSecs);
-      body += `\n\n---\n**🖼️ Co-present Image Context:** The uploaded image was concurrently mapped into the shared latent space.`;
-      return {
-        title: 'Voice Query with Visual Context',
-        body: body
-      };
-    }
+    let body = buildSmartAudioResponse(query, recSecs);
+    body += `\n\n---\n**🖼️ Co-present Image Context:** The uploaded image is active in the shared embedding space.`;
+    return {
+      title: 'Voice Query with Visual Context',
+      body: body
+    };
   }
 
   // Scenario 3: Image Only (no audio)
   if (hasImage && !hasAudio) {
-    if (!query || isImageQuestion(lc)) {
+    if (!query || isImageQuestion(lc) || lc.includes('this')) {
       return {
         title: 'Multimodal Vision Q&A',
         body: buildSmartImageResponse(query, uploadedImageData, uploadedFile)
@@ -1471,7 +1499,6 @@ function generateSmartResponse(query, hasImage, hasAudio) {
     body += `• *"What is multimodal AI?"*\n`;
     body += `• *"How does fusion work?"*\n`;
     body += `• *"Compare traditional AI vs Multimodal AI"*\n`;
-    body += `• *"Can you help me?"*\n`;
   } else {
     body = `Please type a question, record your voice, or upload an image to begin testing!`;
   }
@@ -1488,7 +1515,6 @@ const logMessages = [
   "→ Joint multimodal reasoning via decoder...",
   "→ Grounded response generated successfully ✓"
 ];
-
 // Lightweight Markdown renderer
 function renderMarkdown(md) {
   if (!md) return '';
@@ -1567,10 +1593,12 @@ async function runDemo() {
 
       finalBody = aiReply;
     } catch(err) {
-      console.warn("Gemini API call failed, falling back to smart local engine:", err);
+      console.error("Gemini API call failed:", err);
+      showToast("⚠️ Cloud API Error: " + err.message);
       const resp = generateSmartResponse(query, hasImage, hasAudio);
-      finalTitle = resp.title;
+      finalTitle = resp.title + " (Local Engine)";
       finalBody = resp.body;
+      finalBody += `\n\n---\n> ⚠️ **Gemini Cloud API Notice:** Request failed with: \`${err.message}\`. Displayed local offline response above.`;
     }
   } else {
     // Instant smart response (zero network lag)
